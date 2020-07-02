@@ -14,8 +14,9 @@ End
 Static strConstant str_PreferedPath = "D:Dokumente:HomeOfficeDaten:SharpCap:SharpCap Captures"
 
 Function FITSLoadDirectory()
-	String fileList = "", file, directory, fullpath, filename
-	Variable numFiles = 0, i, r
+	String fileList = "", file, directory, fullpath, fullpath_cs, filename, str_buffer
+	Variable numFiles = 0, i, j, r, cs
+	WAVE wav_filename
 	DFREF current_folder = GetDataFolderDFR() //get original data folder
 	
 	//Get file list
@@ -26,26 +27,37 @@ Function FITSLoadDirectory()
 		file = StringFromList(i, fileList)
 		fullpath = directory + file
 		filename = RemoveEnding(file, ".fits") 
+		fullpath_cs = RemoveEnding(fullpath, ".fits") + ".CameraSettings.txt"
 		
-		//Open and load file
+		//Open and load fits file
 		Open/R r as fullpath
 		LoadOneFITS(r,filename,0,0,0,0,0,10000000,10000000)
 		Close r
 		
-		//Clean Up Folder and Variables
+		//Clean up Folders
 		SetDataFolder $filename
-		KillWaves/A
-		KillStrings/A
 		SetDataFolder Primary
-		MoveWave NoteFitsFile(filename), current_folder
+		WAVE wav_filename = data
+		Duplicate wav_filename, current_folder:$filename 
+		KillWaves wav_filename	
 		SetDataFolder current_folder
-		KillDataFolder $filename
+		KillDataFolder $filename 
+		
+		//Write Camera Settings into the Wave Note
+		Open/R cs as fullpath_cs
+		for(j=0;j<34;j+=1)	// Initialize variables;continue test
+			FReadLine	cs, str_buffer		// Condition;update loop variables
+			Note $filename, TrimString(str_buffer)
+		endfor						// Execute body code until continue test is FALSE
+		Close cs
+		
 	endfor
 	Close/A
 End
 
-//Adds all Information from the header into the wavenotes
-Function/WAVE NoteFitsFile(filename)	
+
+//Adds all Information from the header into the wavenotes. No longer used
+Static Function/WAVE NoteFitsFile(filename)	
 	String filename
 	
 	WAVE wave_fits_data = data
